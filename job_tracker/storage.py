@@ -4,7 +4,7 @@ import time
 from typing import Optional
 import requests as http
 
-from .shared import TOKEN_FILE, _TOKEN_URI, _CLIENT_ID
+from .shared import TOKEN_FILE, _TOKEN_URI, _CLIENT_ID, _CLIENT_SECRET
 
 # ---------------------------------------------------------------------------
 # Token storage / refresh
@@ -38,6 +38,7 @@ def _refresh(token: dict) -> Optional[dict]:
         _TOKEN_URI,
         data={
             "client_id": _CLIENT_ID,
+            "client_secret": _CLIENT_SECRET,
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         },

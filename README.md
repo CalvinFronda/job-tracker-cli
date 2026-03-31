@@ -67,7 +67,12 @@ Each `job <url>` appends one row. Default columns:
 
 ## Configuration
 
-Config is stored at `~/.config/job-tracker/config.json`.
+Config is stored at 
+| OS	     | Path    |
+|------------|---------|
+| macOS |	~/Library/Application Support/job-tracker |
+| Linux	| ~/.config/job-tracker |
+| Windows| AppData/Roaming/job-tracker |
 
 ```bash
 job config show                        # view current settings + a sample row

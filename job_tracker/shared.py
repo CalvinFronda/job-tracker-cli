@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 
 from platformdirs import user_config_dir
@@ -11,5 +12,7 @@ _TOKEN_URI = "https://oauth2.googleapis.com/token"
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-_CLIENT_ID = ""
-_CLIENT_SECRET = ""
+_CLIENT_ID = "678105632663-c0iavlk26d30o6cuhvj4fdor7mvfrgma.apps.googleusercontent.com"
+_CLIENT_SECRET = base64.b64decode(
+    b"R09DU1BYLXo5LURKaFpoRUNPcFMtbW5hMXU1aWFwX2Jsb1c="
+).decode()
