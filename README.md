@@ -24,11 +24,10 @@ pipx install git+https://github.com/CalvinFronda/job-tracker-cli
 ## Setup
 
 ```bash
-job config init   # enter your Google Sheet ID
-job auth          # one-time browser sign-in with Google
+job setup
 ```
 
-That's it. After `job auth` completes, your token is cached locally and you never need to sign in again.
+This runs once — it signs you into Google and asks for your Sheet ID. After that, your token is cached locally and you never need to sign in again.
 
 ---
 
@@ -102,8 +101,8 @@ job config set date_format "%B %d, %Y"  # March 30, 2026
 
 ## Ideas
 
-
 - `job list` — print recent applications from the sheet
 - `job status <company> <status>` — update the status column for an entry
 - Duplicate detection before appending
 - Support for more ATS platforms
+- Better way to edit configs

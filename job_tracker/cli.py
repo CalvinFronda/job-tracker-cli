@@ -1,10 +1,11 @@
 import click
-from . import config, scraper, sheets
+from . import auth as localauth, config, scraper, sheets
 
 
 # ---------------------------------------------------------------------------
 # Custom group: dispatches to 'add' when the first arg isn't a subcommand
 # ---------------------------------------------------------------------------
+
 
 class _DefaultAddGroup(click.Group):
     """Allows `job <url>` as shorthand for `job add <url>`."""
@@ -19,7 +20,12 @@ class _DefaultAddGroup(click.Group):
 # Root group
 # ---------------------------------------------------------------------------
 
-@click.group(cls=_DefaultAddGroup, invoke_without_command=True, context_settings={"help_option_names": ["-h", "--help"]})
+
+@click.group(
+    cls=_DefaultAddGroup,
+    invoke_without_command=True,
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 @click.pass_context
 def main(ctx):
     """
@@ -33,8 +39,7 @@ def main(ctx):
 
     \b
     First-time setup:
-      job config init
-      job auth
+      job setup
     """
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
@@ -44,9 +49,12 @@ def main(ctx):
 # job add (also invoked as `job <url>`)
 # ---------------------------------------------------------------------------
 
+
 @main.command()
 @click.argument("url")
-@click.option("--company", "-c", default="", help="Company name (auto-detected if omitted)")
+@click.option(
+    "--company", "-c", default="", help="Company name (auto-detected if omitted)"
+)
 @click.option("--title", "-t", default="", help="Job title (auto-detected if omitted)")
 @click.option("--notes", "-n", default="", help="Optional notes")
 def add(url, company, title, notes):
@@ -57,6 +65,7 @@ def add(url, company, title, notes):
 # ---------------------------------------------------------------------------
 # Add logic
 # ---------------------------------------------------------------------------
+
 
 def _add(url: str, company: str, title: str, notes: str) -> None:
     try:
@@ -103,15 +112,33 @@ def _add(url: str, company: str, title: str, notes: str) -> None:
 # job auth
 # ---------------------------------------------------------------------------
 
+
 @main.command()
 def auth():
-    """Authenticate with Google (run once after setup)."""
-    sheets.authenticate()
+    """Authenticate with Google"""
+    localauth.get_credentials()
+
+
+def run_setup():
+    try:
+        localauth.get_credentials()
+        config.init_wizard()
+
+        click.echo("Setup complete!")
+
+    except click.exceptions.Abort:
+        click.echo("Setup cancelled")
+
+
+@main.command()
+def setup():
+    run_setup()
 
 
 # ---------------------------------------------------------------------------
 # job config
 # ---------------------------------------------------------------------------
+
 
 @main.group(name="config")
 def config_cmd():

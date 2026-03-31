@@ -1,8 +1,10 @@
 import json
 from datetime import date
 from pathlib import Path
+from platformdirs import user_config_dir
 
-CONFIG_DIR = Path.home() / ".config" / "job-tracker"
+
+CONFIG_DIR = Path(user_config_dir("job-tracker"))
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 KNOWN_FIELDS = {"date", "company", "title", "url", "status", "notes"}
@@ -11,23 +13,19 @@ VALID_KEYS = {"spreadsheet_id", "sheet_name", "columns", "date_format"}
 
 DEFAULTS = {
     "spreadsheet_id": "",
-    "sheet_name": "",               # blank = use last tab
+    "sheet_name": "",  # blank = use last tab
     "columns": "date,company,title,url,status,notes",
-    "date_format": "%Y-%m-%d",      # e.g. 2026-03-30
+    "date_format": "%Y-%m-%d",  # e.g. 2026-03-30
 }
-
-
-def config_dir() -> Path:
-    return CONFIG_DIR
 
 
 def load() -> dict:
     """Load config from disk. Raises if missing or spreadsheet_id not set."""
+    from .cli import run_setup
+
     if not CONFIG_FILE.exists():
-        raise FileNotFoundError(
-            f"No config found at {CONFIG_FILE}\n"
-            "Run `job config init` to get started."
-        )
+        run_setup()
+
     with open(CONFIG_FILE) as f:
         cfg = {**DEFAULTS, **json.load(f)}
 
@@ -100,7 +98,7 @@ def init_wizard() -> None:
 
     print(f"\n✅ Config saved to {CONFIG_FILE}")
     print("\nDefault row format: date, company, title, url, status, notes")
-    print("Customize anytime with: job config set columns \"date,company,title,url\"")
+    print('Customize anytime with: job config set columns "date,company,title,url"')
     print("\nNext step: run `job auth` to connect your Google account.")
 
 

@@ -1,103 +1,8 @@
-import json
-import os
-from dotenv import load_dotenv
-
-
 from datetime import date
-from pathlib import Path
-from typing import Optional
-
-import gspread
-
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-
-load_dotenv()
-
-# Where the OAuth token is cached after first login
-TOKEN_FILE = Path.home() / ".config" / "job-tracker" / "token.json"
-
-
-_OAUTH_CLIENT_ID = os.getenv("_OAUTH_CLIENT_ID")
-_OAUTH_CLIENT_SECRET = os.getenv("_OAUTH_CLIENT_SECRET")
-
-_CLIENT_CONFIG = {
-    "installed": {
-        "client_id": _OAUTH_CLIENT_ID,
-        "client_secret": _OAUTH_CLIENT_SECRET,
-        "redirect_uris": ["http://localhost"],
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-    }
-}
-
-
-def authenticate() -> None:
-    """
-    Run the OAuth browser flow and cache the token locally.
-    Safe to call repeatedly — if already authenticated it just confirms.
-    """
-    if (
-        _OAUTH_CLIENT_ID == "YOUR_CLIENT_ID_HERE"
-        or _OAUTH_CLIENT_SECRET == "YOUR_CLIENT_SECRET_HERE"
-    ):
-        raise RuntimeError(
-            "OAuth credentials are not configured.\n"
-            "Fill in _CLIENT_ID and _CLIENT_SECRET in job_tracker/sheets.py\n"
-            "with your Google Cloud Console OAuth 2.0 Desktop app credentials."
-        )
-
-    creds = _load_or_refresh_token()
-    if creds and creds.valid:
-        print(f"✅ Already authenticated. Token cached at {TOKEN_FILE}")
-        return
-
-    flow = InstalledAppFlow.from_client_config(_CLIENT_CONFIG, SCOPES)
-    creds = flow.run_local_server(port=0, prompt="consent")
-    _save_token(creds)
-    print(f"✅ Authenticated successfully. Token saved to {TOKEN_FILE}")
-
-
-def _get_client() -> gspread.Client:
-    """Return an authenticated gspread client, refreshing the token if needed."""
-    creds = _load_or_refresh_token()
-
-    if not creds or not creds.valid:
-        raise RuntimeError(
-            "Not authenticated or token expired.\n"
-            "Run `job auth` to authenticate with Google."
-        )
-
-    return gspread.authorize(creds)
-
-
-def _load_or_refresh_token() -> Optional[Credentials]:
-    """Load cached token and refresh it if expired."""
-    if not TOKEN_FILE.exists():
-        return None
-
-    with open(TOKEN_FILE) as f:
-        token_data = json.load(f)
-
-    creds = Credentials.from_authorized_user_info(token_data, SCOPES)
-
-    if creds.expired and creds.refresh_token:
-        try:
-            creds.refresh(Request())
-            _save_token(creds)
-        except Exception:
-            return None
-
-    return creds
-
-
-def _save_token(creds: Credentials) -> None:
-    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(TOKEN_FILE, "w") as f:
-        f.write(creds.to_json())
+from .storage import _load_token, _token_valid, _refresh
+from .shared import _TOKEN_URI, _CLIENT_ID, SCOPES
+import gspread
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +26,6 @@ def append_job(
     """
     client = _get_client()
     spreadsheet = client.open_by_key(spreadsheet_id)
-
     worksheet = _resolve_worksheet(spreadsheet, sheet_name)
 
     all_fields = {
@@ -142,18 +46,14 @@ def append_job(
         body={"values": [row]},
     )
 
-    all_values = worksheet.get_all_values()
-    row_number = len(all_values)
-
+    row_number = len(worksheet.get_all_values())
     return worksheet.title, row_number
 
 
 def _resolve_worksheet(
     spreadsheet: gspread.Spreadsheet, sheet_name: str
 ) -> gspread.Worksheet:
-    """Return the configured sheet tab, or the last tab if none is configured."""
     worksheets = spreadsheet.worksheets()
-
     if not worksheets:
         raise RuntimeError("Spreadsheet has no sheets.")
 
@@ -169,3 +69,28 @@ def _resolve_worksheet(
         return matches[0]
 
     return worksheets[-1]
+
+
+def _get_client() -> gspread.Client:
+    from .auth import get_credentials  # lazy import to avoid circular deps
+
+    token = _load_token()
+
+    if token and not _token_valid(token):
+        token = _refresh(token)
+
+    if not token or not _token_valid(token):
+        get_credentials()
+        token = _load_token()
+
+    # Build a Credentials object for gspread using the valid access token.
+    # expiry=None prevents gspread from trying its own refresh logic.
+    creds = Credentials(
+        token=token["access_token"],
+        refresh_token=token.get("refresh_token"),
+        token_uri=_TOKEN_URI,
+        client_id=_CLIENT_ID,
+        client_secret="",
+        scopes=SCOPES,
+    )
+    return gspread.authorize(creds)
