@@ -12,4 +12,4 @@ _TOKEN_URI = "https://oauth2.googleapis.com/token"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 _CLIENT_ID = "678105632663-c0iavlk26d30o6cuhvj4fdor7mvfrgma.apps.googleusercontent.com"
-_CLIENT_SECRET = ""
+_CLIENT_SECRET = "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"
