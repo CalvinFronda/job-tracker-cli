@@ -1,0 +1,162 @@
+import click
+from . import config, scraper, sheets
+
+
+# ---------------------------------------------------------------------------
+# Custom group: dispatches to 'add' when the first arg isn't a subcommand
+# ---------------------------------------------------------------------------
+
+class _DefaultAddGroup(click.Group):
+    """Allows `job <url>` as shorthand for `job add <url>`."""
+
+    def invoke(self, ctx):
+        args = ctx.protected_args + ctx.args
+        if args and not args[0].startswith("-") and self.get_command(ctx, args[0]) is None:
+            ctx.protected_args = ["add"] + ctx.protected_args
+        return super().invoke(ctx)
+
+
+# ---------------------------------------------------------------------------
+# Root group
+# ---------------------------------------------------------------------------
+
+@click.group(cls=_DefaultAddGroup, invoke_without_command=True, context_settings={"help_option_names": ["-h", "--help"]})
+@click.pass_context
+def main(ctx):
+    """
+    Log a job application to Google Sheets.
+
+    \b
+    Usage:
+      job <url>
+      job <url> --company Stripe --title "Software Engineer"
+      job <url> --notes "Referral from Jane"
+
+    \b
+    First-time setup:
+      job config init
+      job auth
+    """
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
+
+
+# ---------------------------------------------------------------------------
+# job add (also invoked as `job <url>`)
+# ---------------------------------------------------------------------------
+
+@main.command()
+@click.argument("url")
+@click.option("--company", "-c", default="", help="Company name (auto-detected if omitted)")
+@click.option("--title", "-t", default="", help="Job title (auto-detected if omitted)")
+@click.option("--notes", "-n", default="", help="Optional notes")
+def add(url, company, title, notes):
+    """Log a job application from a URL."""
+    _add(url=url, company=company, title=title, notes=notes)
+
+
+# ---------------------------------------------------------------------------
+# Add logic
+# ---------------------------------------------------------------------------
+
+def _add(url: str, company: str, title: str, notes: str) -> None:
+    try:
+        cfg = config.load()
+    except (FileNotFoundError, ValueError) as e:
+        raise click.ClickException(str(e))
+
+    # Auto-detect missing fields
+    if not company or not title:
+        click.echo("🔍 Detecting job details from URL...")
+        detected = scraper.fetch(url)
+
+        if not company:
+            company = detected.company
+        if not title:
+            title = detected.title
+
+    # Prompt for anything still missing
+    if not company:
+        company = click.prompt("Company name")
+    if not title:
+        title = click.prompt("Job title")
+
+    click.echo(f"📋 Adding: {company} — {title}")
+
+    try:
+        tab_name, row_number = sheets.append_job(
+            spreadsheet_id=cfg["spreadsheet_id"],
+            credentials_file=cfg["credentials_file"],
+            company=company,
+            title=title,
+            url=url,
+            notes=notes,
+            sheet_name=cfg.get("sheet_name", ""),
+        )
+    except (FileNotFoundError, RuntimeError, ValueError) as e:
+        raise click.ClickException(str(e))
+
+    click.echo(f'✅ Added to sheet "{tab_name}" at row {row_number}')
+
+
+# ---------------------------------------------------------------------------
+# job auth
+# ---------------------------------------------------------------------------
+
+@main.command()
+def auth():
+    """Authenticate with Google (run once after setup)."""
+    try:
+        cfg = config.load()
+    except FileNotFoundError:
+        # Config might not exist yet — use the default credentials path
+        creds_file = str(config.CONFIG_DIR / "credentials.json")
+    except ValueError as e:
+        raise click.ClickException(str(e))
+    else:
+        creds_file = cfg["credentials_file"]
+
+    try:
+        sheets.authenticate(creds_file)
+    except FileNotFoundError as e:
+        raise click.ClickException(str(e))
+
+
+# ---------------------------------------------------------------------------
+# job config
+# ---------------------------------------------------------------------------
+
+@main.group(name="config")
+def config_cmd():
+    """Manage job-tracker configuration."""
+    pass
+
+
+@config_cmd.command("init")
+def config_init():
+    """Interactive setup wizard."""
+    config.init_wizard()
+
+
+@config_cmd.command("show")
+def config_show():
+    """Print current configuration."""
+    config.show()
+
+
+@config_cmd.command("set")
+@click.argument("key")
+@click.argument("value")
+def config_set(key, value):
+    """Set a configuration value.
+
+    \b
+    Keys:
+      spreadsheet_id    The Google Sheets ID from your sheet URL
+      sheet_name        Which tab to write to (blank = last tab)
+      credentials_file  Path to your Google OAuth credentials JSON
+    """
+    try:
+        config.set_value(key, value)
+    except ValueError as e:
+        raise click.ClickException(str(e))

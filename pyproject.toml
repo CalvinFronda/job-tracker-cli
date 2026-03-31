@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "job-tracker"
+version = "0.1.0"
+description = "Log job applications to Google Sheets from the command line"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "click>=8.1",
+    "gspread>=6.0",
+    "google-auth-oauthlib>=1.0",
+    "requests>=2.28",
+]
+
+[project.scripts]
+job = "job_tracker.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/CalvinFronda/job-tracker-cli"
