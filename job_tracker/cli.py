@@ -9,11 +9,10 @@ from . import config, scraper, sheets
 class _DefaultAddGroup(click.Group):
     """Allows `job <url>` as shorthand for `job add <url>`."""
 
-    def invoke(self, ctx):
-        args = ctx.protected_args + ctx.args
-        if args and not args[0].startswith("-") and self.get_command(ctx, args[0]) is None:
-            ctx.protected_args = ["add"] + ctx.protected_args
-        return super().invoke(ctx)
+    def parse_args(self, ctx, args):
+        if args and not args[0].startswith("-") and args[0] not in self.commands:
+            args = ["add"] + args
+        return super().parse_args(ctx, args)
 
 
 # ---------------------------------------------------------------------------
@@ -86,12 +85,13 @@ def _add(url: str, company: str, title: str, notes: str) -> None:
     try:
         tab_name, row_number = sheets.append_job(
             spreadsheet_id=cfg["spreadsheet_id"],
-            credentials_file=cfg["credentials_file"],
             company=company,
             title=title,
             url=url,
             notes=notes,
             sheet_name=cfg.get("sheet_name", ""),
+            columns=cfg.get("columns", "date,company,title,url,status,notes"),
+            date_format=cfg.get("date_format", "%Y-%m-%d"),
         )
     except (FileNotFoundError, RuntimeError, ValueError) as e:
         raise click.ClickException(str(e))
@@ -106,20 +106,7 @@ def _add(url: str, company: str, title: str, notes: str) -> None:
 @main.command()
 def auth():
     """Authenticate with Google (run once after setup)."""
-    try:
-        cfg = config.load()
-    except FileNotFoundError:
-        # Config might not exist yet — use the default credentials path
-        creds_file = str(config.CONFIG_DIR / "credentials.json")
-    except ValueError as e:
-        raise click.ClickException(str(e))
-    else:
-        creds_file = cfg["credentials_file"]
-
-    try:
-        sheets.authenticate(creds_file)
-    except FileNotFoundError as e:
-        raise click.ClickException(str(e))
+    sheets.authenticate()
 
 
 # ---------------------------------------------------------------------------
