@@ -6,69 +6,29 @@ A minimal CLI to log job applications to Google Sheets with a single command.
 $ job https://job-boards.greenhouse.io/postman/jobs/7359054003
 🔍 Detecting job details from URL...
 📋 Adding: Postman — Senior Software Engineer
-✅ Added to sheet "2025" at row 14
+✅ Added to sheet "2026" at row 14
 ```
 
 ---
 
 ## Installation
 
-### Prerequisites
-- Python 3.9+
-- [pipx](https://pipx.pypa.io/stable/installation/)
-
-### Install from GitHub
+**Prerequisites:** Python 3.9+, [pipx](https://pipx.pypa.io/stable/installation/)
 
 ```bash
 pipx install git+https://github.com/CalvinFronda/job-tracker-cli
 ```
 
-### Install from source
-
-```bash
-git clone https://github.com/CalvinFronda/job-tracker-cli
-cd job-tracker
-pipx install .
-```
-
 ---
 
-## Google Sheets setup
-
-### 1. Create a Google Cloud project
-
-1. Go to [console.cloud.google.com](https://console.cloud.google.com/)
-2. Create a new project (e.g. "job-tracker")
-3. Navigate to **APIs & Services → Library**
-4. Search for **Google Sheets API** → Enable it
-
-### 2. Create OAuth 2.0 credentials
-
-1. Go to **APIs & Services → Credentials**
-2. Click **Create Credentials → OAuth client ID**
-3. Application type: **Desktop app**
-4. Click **Create**, then **Download JSON**
-5. Save the file somewhere safe (e.g. `~/.config/job-tracker/credentials.json`)
-
-### 3. Configure job-tracker
+## Setup
 
 ```bash
-job config init
+job config init   # enter your Google Sheet ID
+job auth          # one-time browser sign-in with Google
 ```
 
-You'll be prompted for:
-- Your **Spreadsheet ID** — from your sheet URL: `docs.google.com/spreadsheets/d/<ID>/edit`
-- Which **sheet tab** to write to (leave blank to always use the last tab)
-- Path to your **credentials JSON** from step 2
-
-### 4. Authenticate
-
-```bash
-job auth
-```
-
-This opens a browser window. Sign in with Google, grant access, and you're done.
-The token is cached locally — you only need to do this once.
+That's it. After `job auth` completes, your token is cached locally and you never need to sign in again.
 
 ---
 
@@ -85,51 +45,65 @@ job https://lever.co/stripe/abc-123 --company Stripe --title "Software Engineer 
 job https://example.com/jobs/123 --notes "Referral from Jane"
 ```
 
-### Supported ATS platforms (company auto-detected from URL)
+### Supported job boards (company + title auto-detected)
 
-- Greenhouse
-- Lever
-- Ashby
-- Workday
-- Workable
-- SmartRecruiters
+- Greenhouse, Lever, Ashby
+- Workday, Workable, SmartRecruiters
 - Any `jobs.<company>.com` or `careers.<company>.com` subdomain
+- Fallback: fetches the page and parses meta tags + title
 
-For other URLs the tool fetches the page and extracts the company name from
-meta tags and the page title. If it can't determine a field, it will prompt you.
+If a field can't be detected, the CLI will prompt you for it.
 
 ---
 
 ## Sheet format
 
-The tool appends a row with these columns:
+Each `job <url>` appends one row. Default columns:
 
 | Date       | Company | Title                    | URL                       | Status  | Notes |
 |------------|---------|--------------------------|---------------------------|---------|-------|
-| 2025-05-01 | Postman | Senior Software Engineer | https://greenhouse.io/... | Applied |       |
-
-You can add columns to the right freely — the tool only writes to A–F.
+| 2026-03-30 | Postman | Senior Software Engineer | https://greenhouse.io/... | Applied |       |
 
 ---
 
-## Configuration reference
+## Configuration
 
 Config is stored at `~/.config/job-tracker/config.json`.
 
 ```bash
-job config show                              # view current settings
-job config set spreadsheet_id <id>           # update sheet ID
-job config set sheet_name "June 2025"        # pin to a specific tab
-job config set credentials_file ~/creds.json # update credentials path
+job config show                        # view current settings + a sample row
+job config set spreadsheet_id <id>     # update sheet ID
+job config set sheet_name "June 2026"  # pin to a specific tab (blank = last tab)
 ```
+
+### Customize columns
+
+Choose which fields appear and in what order:
+
+```bash
+job config set columns "date,company,title,url,status,notes"  # default
+job config set columns "date,company,title,url"               # drop status + notes
+job config set columns "company,title,date,notes"             # reorder
+```
+
+Available fields: `date`, `company`, `title`, `url`, `status`, `notes`
+
+### Customize date format
+
+```bash
+job config set date_format "%Y-%m-%d"   # 2026-03-30  (default)
+job config set date_format "%m/%d/%Y"   # 03/30/2026
+job config set date_format "%B %d, %Y"  # March 30, 2026
+```
+
+`job config show` always prints a live preview so you can see exactly what the next row will look like.
 
 ---
 
-## Contributing
+## Ideas
 
-PRs welcome. Some ideas for future features:
 
 - `job list` — print recent applications from the sheet
 - `job status <company> <status>` — update the status column for an entry
 - Duplicate detection before appending
-- Support for more ATS platforms in the URL scraper
+- Support for more ATS platforms
