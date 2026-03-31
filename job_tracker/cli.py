@@ -120,9 +120,12 @@ def auth():
 
 
 def run_setup():
+    from .config import CONFIG_FILE
+
     try:
         localauth.get_credentials()
-        config.init_wizard()
+        if not CONFIG_FILE.exists():
+            config.init_wizard()
 
         click.echo("Setup complete!")
 
