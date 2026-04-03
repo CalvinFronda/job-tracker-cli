@@ -73,20 +73,26 @@ def _add(url: str, company: str, title: str, notes: str) -> None:
     except (FileNotFoundError, ValueError) as e:
         raise click.ClickException(str(e))
 
+    columns = [
+        c.strip().lower()
+        for c in cfg.get("columns", "date,company,title,url,status,notes").split(",")
+    ]
+    needs_company = "company" in columns
+    needs_title = "title" in columns
+
     # Auto-detect missing fields
-    if not company or not title:
+    if (needs_company and not company) or (needs_title and not title):
         click.echo("🔍 Detecting job details from URL...")
         detected = scraper.fetch(url)
-
-        if not company:
+        if needs_company and not company:
             company = detected.company
-        if not title:
+        if needs_title and not title:
             title = detected.title
 
     # Prompt for anything still missing
-    if not company:
+    if needs_company and not company:
         company = click.prompt("Company name")
-    if not title:
+    if needs_title and not title:
         title = click.prompt("Job title")
 
     click.echo(f"📋 Adding: {company} — {title}")
