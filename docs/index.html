@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>job-tracker-cli</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 680px;
+      margin: 60px auto;
+      padding: 0 24px;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 4px; }
+    p.tagline { color: #555; margin-top: 0; }
+    code {
+      background: #f4f4f4;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #f4f4f4;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    a { color: #0066cc; }
+    footer { margin-top: 60px; font-size: 0.85rem; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>job-tracker-cli</h1>
+  <p class="tagline">Log job applications to Google Sheets from the command line.</p>
+
+  <p>
+    <code>job-tracker-cli</code> is an open-source command-line tool that lets you track job
+    applications in a Google Sheet with a single command. Paste a job posting URL and it
+    auto-detects the company and title, then appends a row to your spreadsheet.
+  </p>
+
+  <pre><code>job https://boards.greenhouse.io/acme/jobs/12345</code></pre>
+
+  <h2>Features</h2>
+  <ul>
+    <li>Auto-detects company and job title from Greenhouse, Lever, Ashby, Workday, and more</li>
+    <li>Appends rows to any Google Sheet you configure</li>
+    <li>Configurable columns, date format, and target tab</li>
+    <li>One-time Google OAuth setup — token stored locally</li>
+  </ul>
+
+  <h2>Install</h2>
+  <pre><code>pipx install git+https://github.com/CalvinFronda/job-tracker-cli</code></pre>
+
+  <p>
+    <a href="https://github.com/CalvinFronda/job-tracker-cli">View on GitHub</a> &middot;
+    <a href="privacy.html">Privacy Policy</a>
+  </p>
+
+  <footer>job-tracker-cli is open source software, not affiliated with Google.</footer>
+</body>
+</html>
